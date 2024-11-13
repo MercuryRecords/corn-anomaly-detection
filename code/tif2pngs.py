@@ -1,8 +1,10 @@
-import rasterio
 import os
+import random
+import rasterio
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+from shutil import copyfile
 
 # 获取当前文件的路径
 current_file_path = os.path.abspath(__file__)
@@ -21,6 +23,27 @@ def init_data_dir():
     for sub_dir in sub_dirs:
         os.makedirs(os.path.join(target_dir, sub_dir, 'images'), exist_ok=True)
         os.makedirs(os.path.join(target_dir, sub_dir, 'masks'), exist_ok=True)
+
+
+def split_train_val(val_ratio=0.2, image_prefix='result', mask_prefix='standard'):
+    source_dir = os.path.join(ROOT, 'data', 'train')
+    target_dir = os.path.join(ROOT, 'data', 'val')
+
+    files = os.listdir(os.path.join(source_dir, 'images'))
+
+    num_files = len(files)
+    num_val_files = int(num_files * val_ratio)
+    val_files = random.sample(files, num_val_files)
+    # 将抽取的文件复制到目标目录
+    for file in tqdm(val_files):
+        # 复制图像文件
+        copyfile(os.path.join(source_dir, 'images', file), os.path.join(target_dir, 'images', file))
+        # 复制掩码文件
+        copyfile(os.path.join(source_dir, 'masks', file.replace(image_prefix, mask_prefix)),
+                 os.path.join(target_dir, 'masks', file.replace(image_prefix, mask_prefix)))
+        # 删除源目录下的文件
+        os.remove(os.path.join(source_dir, 'images', file))
+        os.remove(os.path.join(source_dir, 'masks', file.replace(image_prefix, mask_prefix)))
 
 
 class Tif2Pngs:
@@ -78,8 +101,9 @@ if __name__ == '__main__':
     init_data_dir()
     mask_file_path = os.path.join(ROOT, 'datasets', 'standard.tif')
     image_file_path = os.path.join(ROOT, 'datasets', 'main', 'result.tif')
-    # tif2pngs = Tif2Pngs(image_file_path, os.path.join(ROOT, 'data', 'train', 'images'))
-    # tif2pngs.process_tif()
+    tif2pngs = Tif2Pngs(image_file_path, os.path.join(ROOT, 'data', 'train', 'images'))
+    tif2pngs.process_tif()
     tif2pngs = Tif2Pngs(mask_file_path, os.path.join(ROOT, 'data', 'train', 'masks'))
     tif2pngs.process_tif()
+    split_train_val()
     print("Done")

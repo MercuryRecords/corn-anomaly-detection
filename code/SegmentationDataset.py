@@ -1,10 +1,10 @@
 import os
-import random
-from shutil import copyfile
+
+import numpy as np
+import torch
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms as T
-from tqdm import tqdm
 
 # 获取当前文件的路径
 current_file_path = os.path.abspath(__file__)
@@ -12,30 +12,6 @@ current_file_path = os.path.abspath(__file__)
 parent_directory_path = os.path.dirname(current_file_path)
 # 获取项目的根目录
 ROOT = os.path.dirname(parent_directory_path)
-
-
-# 定义测试集与训练集目录
-
-def split_train_val(val_ratio=0.2, image_prefix='result', mask_prefix='standard'):
-    source_dir = os.path.join(ROOT, 'data', 'train')
-    target_dir = os.path.join(ROOT, 'data', 'val')
-
-    files = os.listdir(os.path.join(source_dir, 'images'))
-
-    num_files = len(files)
-    num_val_files = int(num_files * val_ratio)
-    val_files = random.sample(files, num_val_files)
-    # 将抽取的文件复制到目标目录
-    for file in tqdm(val_files):
-        # 复制图像文件
-        copyfile(os.path.join(source_dir, 'images', file), os.path.join(target_dir, 'images', file))
-        # 复制掩码文件
-        copyfile(os.path.join(source_dir, 'masks', file.replace(image_prefix, mask_prefix)),
-                 os.path.join(target_dir, 'masks', file.replace(image_prefix, mask_prefix)))
-        # 删除源目录下的文件
-        os.remove(os.path.join(source_dir, 'images', file))
-        os.remove(os.path.join(source_dir, 'masks', file.replace(image_prefix, mask_prefix)))
-
 
 class SegmentationDataset(Dataset):
     def __init__(self,
@@ -61,17 +37,30 @@ class SegmentationDataset(Dataset):
         image = Image.open(img_path).convert("RGB")
         mask = Image.open(mask_path)
 
+        # 加载mask并转换为numpy数组
+        mask = Image.open(mask_path).convert("L")  # 确保mask是灰度图像
+        mask = np.array(mask)
+
+        # 创建三个二进制掩码，每个类别一个
+        mask_0 = (mask == 0).astype(np.uint8)  # 类别0的掩码
+        mask_1 = (mask == 1).astype(np.uint8)  # 类别1的掩码
+        mask_2 = (mask == 2).astype(np.uint8)  # 类别2的掩码
+
+        # 将三个掩码堆叠成一个新的数组，形状为(3, 256, 256)
+        mask = np.stack([mask_0, mask_1, mask_2], axis=0)
+
+        # 将numpy数组转换为torch tensor
+        mask = torch.tensor(mask, dtype=torch.float32)
+
+        # 对图像应用相同的转换
         if self.transform:
             image = self.transform(image)
-            mask = self.transform(mask)
 
         return image, mask
 
 
 
 if __name__ == '__main__':
-    split_train_val()
-
     train_dir = os.path.join(ROOT, 'data', 'train')
     val_dir = os.path.join(ROOT, 'data', 'val')
 
