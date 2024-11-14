@@ -13,6 +13,8 @@ parent_directory_path = os.path.dirname(current_file_path)
 # 获取项目的根目录
 ROOT = os.path.dirname(parent_directory_path)
 
+random.seed(3407)
+
 
 def init_data_dir():
     # 定义源目录和目标目录
