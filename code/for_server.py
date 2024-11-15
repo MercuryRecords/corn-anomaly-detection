@@ -1,23 +1,24 @@
 import os
-import random
-
 import torch
+import random
+import logging
+import warnings
 from torch.utils.data import DataLoader
 from torchvision import transforms as T
 
 from SegmentationDataset import SegmentationDataset, ROOT
 from eval import cal_score
 
-import logging
+warnings.filterwarnings("ignore")
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 logger = logging.getLogger('my_logger')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # 创建一个handler，用于写入日志文件
 file_handler = logging.FileHandler('my_log.log')
-file_handler.setLevel(logging.DEBUG)
+file_handler.setLevel(logging.INFO)
 
 # 创建一个handler，用于输出到控制台
 console_handler = logging.StreamHandler()
@@ -31,7 +32,6 @@ console_handler.setFormatter(formatter)
 # 添加handler到logger
 logger.addHandler(file_handler)
 logger.addHandler(console_handler)
-
 
 torch.manual_seed(3407)
 if torch.cuda.is_available():
@@ -236,7 +236,7 @@ import torch.optim as optim
 # Define the available models
 models = {
     'UnetPlusPlus': UnetPlusPlus,
-    'DeepLabV3Plus': DeepLabV3Plus,
+    # 'DeepLabV3Plus': DeepLabV3Plus,
 }
 
 # Define the available loss functions
@@ -296,7 +296,7 @@ def grid_search(epoch_num):
                             # Train the model
                             start_time = time.time()
                             max_score = train(model_name, model, loss_fn, optimizer,
-                                             epoch_num)  # Ensure the train function works
+                                              epoch_num)  # Ensure the train function works
                             elapsed_time = (time.time() - start_time) / epoch_num
 
                             # Check if the current model has the best performance
