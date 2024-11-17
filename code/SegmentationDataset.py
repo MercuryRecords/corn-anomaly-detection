@@ -25,36 +25,36 @@ class SegmentationDataset(Dataset):
                  transform=None,
                  image_prefix='result',
                  mask_prefix='standard',
+                 inference=False,
                  ):
         self.root_dir = root_dir
         self.transform = transform
         self.image_prefix = image_prefix
         self.mask_prefix = mask_prefix
         self.images = os.listdir(os.path.join(root_dir, 'images'))
+        self.inference = inference
 
     def __len__(self):
         return len(self.images)
 
+    def get_images(self):
+        return self.images
+
     def __getitem__(self, idx):
         img_name = self.images[idx]
         img_path = os.path.join(self.root_dir, 'images', img_name)
-        mask_path = os.path.join(self.root_dir, 'masks', img_name.replace(self.image_prefix, self.mask_prefix))
-
         image = Image.open(img_path).convert("RGB")
-        # mask = Image.open(mask_path)
 
-        # 加载mask并转换为numpy数组
-        # mask = Image.open(mask_path).convert("L")  # 确保mask是灰度图像
+        # 对图像应用相同的转换
+        if self.transform:
+            image = self.transform(image)
+
+        if self.inference:
+            return image, img_name
+
+        mask_path = os.path.join(self.root_dir, 'masks', img_name.replace(self.image_prefix, self.mask_prefix))
         mask = Image.open(mask_path)
         mask = np.array(mask)
-
-        # if np.unique(mask).size > 1:
-        #     print(np.unique(mask))
-        #     pass
-        #
-        # base_name = os.path.basename(mask_path)
-        # if "9728_11520" in base_name:
-        #     pass
 
         # 创建三个二进制掩码，每个类别一个
         mask_0 = (mask == 0).astype(np.uint8)  # 类别0的掩码
@@ -66,10 +66,6 @@ class SegmentationDataset(Dataset):
 
         # 将numpy数组转换为torch tensor
         mask = torch.tensor(mask, dtype=torch.float32)
-
-        # 对图像应用相同的转换
-        if self.transform:
-            image = self.transform(image)
 
         return image, mask
 

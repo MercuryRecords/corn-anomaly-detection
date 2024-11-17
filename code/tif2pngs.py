@@ -1,5 +1,7 @@
 import os
 import random
+import shutil
+
 import rasterio
 import numpy as np
 from PIL import Image
@@ -49,11 +51,15 @@ def split_train_val(val_ratio=0.2, image_prefix='result', mask_prefix='standard'
 
 
 class Tif2Pngs:
-    def __init__(self, tif_path, output_dir, block_size=256, stride=256):
+    def __init__(self, tif_path, output_dir, block_size=256, stride=256, inference=False):
         self.tif_path = tif_path
         self.output_dir = output_dir
         self.block_size = block_size
         self.stride = stride
+        self.inference = inference
+        if self.inference:
+            shutil.rmtree(self.output_dir, ignore_errors=True)
+        os.makedirs(self.output_dir, exist_ok=True)
 
     def process_tif(self):
         with rasterio.open(self.tif_path) as src:

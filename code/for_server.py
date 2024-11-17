@@ -38,6 +38,26 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(3407)
 random.seed(3407)
 
+from tif2pngs import Tif2Pngs, init_data_dir, split_train_val, ROOT
+import os
+
+# 阶段一，处理原始 tif 文件，并划分训练集和验证集（只用执行一遍）
+# init_data_dir()
+# mask_file_path = os.path.join(ROOT, 'datasets', 'standard.tif')
+# image_file_path = os.path.join(ROOT, 'datasets', 'main', 'result.tif')
+# tif2pngs = Tif2Pngs(image_file_path,
+#                     os.path.join(ROOT, 'data', 'train', 'images'),
+#                     block_size=512,
+#                     stride=512)
+# tif2pngs.process_tif()
+# tif2pngs = Tif2Pngs(mask_file_path,
+#                     os.path.join(ROOT, 'data', 'train', 'masks'),
+#                     block_size=512,
+#                     stride=512)
+# tif2pngs.process_tif()
+# split_train_val()
+print("Done")
+
 # 阶段二，加载数据集
 train_dir = os.path.join(ROOT, 'data', 'train')
 val_dir = os.path.join(ROOT, 'data', 'val')
@@ -52,8 +72,8 @@ train_dataset = SegmentationDataset(root_dir=train_dir, transform=transform)
 val_dataset = SegmentationDataset(root_dir=val_dir, transform=transform)
 
 # 创建数据加载器
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -219,46 +239,66 @@ def train(modelName, model, loss_fn, optimizer, epoch_num):
         # 计算分数
         score = cal_score(model, val_loader)
 
-        logger.info(f"Epoch {epoch}/{epoch_num}, Score: {score}")
+        logger.info(f"Epoch {epoch}/{epoch_num}, Loss: {loss.item()}, Score: {score}")
 
         if max_score < score:
             max_score = score
+
+    torch.save(model, f'../model/{modelName}_{int(time.time())}.pth')
 
     return max_score
 
 
 import torch
-from segmentation_models_pytorch import DeepLabV3Plus, UnetPlusPlus
+from segmentation_models_pytorch import DeepLabV3Plus, UnetPlusPlus, Unet
 import csv
 import time
 import torch.optim as optim
 
 # Define the available models
 models = {
-    'UnetPlusPlus': UnetPlusPlus,
+    'Unet': Unet,
+    # 'UnetPlusPlus': UnetPlusPlus,
     # 'DeepLabV3Plus': DeepLabV3Plus,
 }
 
 # Define the available loss functions
 loss_functions = {
     "FocalLoss": FocalLoss(),
-    "FocalTverskyLoss": FocalTverskyLoss(),
+    # "FocalTverskyLoss": FocalTverskyLoss(),
 
 }
 
 # Define the available optimizers
 optimizers = {
-    "Adam": optim.Adam,
-    "SGD": optim.SGD,
+    # "Adam": optim.Adam,
+    # "SGD": optim.SGD,
     "AdamW": optim.AdamW,
 }
 
 # Define learning rates to test
-learning_rates = [1e-5, 1e-4, 1e-3]
+learning_rates = [
+    # 1e-5,
+    1e-4,
+    # 1e-3,
+]
 
 epoch_num = 10
 
-encoder_names = ['resnet34', 'resnet50', 'densenet121']
+encoder_names = [
+    # 'resnet34',
+    'resnet50',
+    # 'densenet121',
+                 ]
+
+activation_names = [
+    'sigmoid',
+    'softmax',
+    'logsoftmax',
+    'tanh',
+    'identity',
+    None,
+                 ]
 
 
 # Create a function to perform grid search
@@ -278,50 +318,52 @@ def grid_search(epoch_num):
             for loss_name, loss_fn_class in loss_functions.items():
                 for optimizer_name, optimizer_class in optimizers.items():
                     for encoder_name in encoder_names:
-                        for lr in learning_rates:
-                            print("---------------------------------Start---------------------------------")
+                        for activation_name in activation_names:
+                            for lr in learning_rates:
+                                print("---------------------------------Start---------------------------------")
 
-                            tmp_str = f"Training {model_name} with {loss_name}, {encoder_name}, {optimizer_name}, lr={lr}"
+                                tmp_str = f"Training {model_name} with {loss_name}, {encoder_name}, {optimizer_name}, {activation_name}, lr={lr}"
 
-                            print(tmp_str)
+                                print(tmp_str)
 
-                            logger.info(tmp_str)
+                                logger.info(tmp_str)
 
-                            # Initialize the model, loss function, and optimizer
-                            model = model_class(encoder_name=encoder_name, classes=3,
-                                                activation='softmax')  # Make sure this is the correct parameter for your model
-                            loss_fn = loss_fn_class
-                            optimizer = optimizer_class(model.parameters(), lr=lr)
+                                # Initialize the model, loss function, and optimizer
+                                model = model_class(encoder_name=encoder_name, classes=3,
+                                                    activation=activation_name)  # Make sure this is the correct parameter for your model
+                                loss_fn = loss_fn_class
+                                optimizer = optimizer_class(model.parameters(), lr=lr)
 
-                            # Train the model
-                            start_time = time.time()
-                            max_score = train(model_name, model, loss_fn, optimizer,
-                                              epoch_num)  # Ensure the train function works
-                            elapsed_time = (time.time() - start_time) / epoch_num
+                                # Train the model
+                                start_time = time.time()
+                                max_score = train(model_name, model, loss_fn, optimizer,
+                                                  epoch_num)  # Ensure the train function works
+                                elapsed_time = (time.time() - start_time) / epoch_num
 
-                            # Check if the current model has the best performance
-                            if max_score > best_score:
-                                best_score = max_score
-                                best_combination = (model_name, loss_name, optimizer_name, encoder_name, lr)
+                                # Check if the current model has the best performance
+                                if max_score > best_score:
+                                    best_score = max_score
+                                    best_combination = (model_name, loss_name, optimizer_name, encoder_name, lr)
 
-                            print(f"Epoch time: {elapsed_time:.2f} seconds, Min loss: {max_score:.4f}")
+                                print(f"Epoch time: {elapsed_time:.2f} seconds, Max score: {max_score:.4f}")
 
-                            # Record the results
-                            result = {
-                                'Model': model_name,
-                                'Loss Function': loss_name,
-                                'Optimizer': optimizer_name,
-                                'Encoder Name': encoder_name,
-                                'Learning Rate': lr,
-                                'Max Score': max_score,
-                                'Epoch Average Training Time (s)': elapsed_time
-                            }
-                            writer.writerow(result)  # 写入当前结果
-                            csvfile.flush()  # 确保数据被写入文件
+                                # Record the results
+                                result = {
+                                    'Model': model_name,
+                                    'Loss Function': loss_name,
+                                    'Optimizer': optimizer_name,
+                                    'Encoder Name': encoder_name,
+                                    'Activation Function': activation_name,
+                                    'Learning Rate': lr,
+                                    'Max Score': max_score,
+                                    'Epoch Average Training Time (s)': elapsed_time
+                                }
+                                writer.writerow(result)  # 写入当前结果
+                                csvfile.flush()  # 确保数据被写入文件
 
-                            print(f"Best model combination: {best_combination} with min loss: {best_score:.4f}")
+                                print(f"Best model combination: {best_combination} with max score: {best_score:.4f}")
 
-                            print("----------------------------------End----------------------------------")
+                                print("----------------------------------End----------------------------------")
 
         return best_combination, best_score
 
