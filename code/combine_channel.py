@@ -129,10 +129,10 @@ def get_tif_metadata(tif):
 
 def main():
     # 输入文件路径
-    reference_tif = os.path.join(ROOT, 'datasets', 'main', 'result.tif')
-    dsm_tif = os.path.join(ROOT, 'datasets', 'main', 'dsm.tif')
-    nir_tif = os.path.join(ROOT, 'datasets', 'main', 'result_NIR.tif')
-    red_tif = os.path.join(ROOT, 'datasets', 'main', 'result_Red.tif')
+    reference_tif = os.path.join(ROOT, 'datasets', 'B', 'result.tif')
+    dsm_tif = os.path.join(ROOT, 'datasets', 'B', 'dsm.tif')
+    nir_tif = os.path.join(ROOT, 'datasets', 'B', 'result_NIR.tif')
+    red_tif = os.path.join(ROOT, 'datasets', 'B', 'result_Red.tif')
 
     # 中间处理文件
     # resampled_dsm = "D:\\PycharmProfessProject\\corn_detect\\code\\datasets\\resampled_dsm.tif"  # 重采样后的 DSM
