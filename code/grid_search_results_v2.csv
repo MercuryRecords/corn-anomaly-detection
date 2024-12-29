@@ -1,7 +1,0 @@
-Model,Loss Function,Optimizer,Encoder Name,Activation Function,Learning Rate,Max Score,Epoch Average Training Time (s)
-Unet,FocalLoss,AdamW,resnet50,sigmoid,0.0001,97.79693325345525,266.60160930156707
-Unet,FocalLoss,AdamW,resnet50,softmax,0.0001,97.70394040928835,266.18844468593596
-Unet,FocalLoss,AdamW,resnet50,logsoftmax,0.0001,97.77776953570071,267.0203560590744
-Unet,FocalLoss,AdamW,resnet50,tanh,0.0001,97.67238647368214,266.103599357605
-Unet,FocalLoss,AdamW,resnet50,identity,0.0001,97.71283553572965,265.2110127210617
-Unet,FocalLoss,AdamW,resnet50,,0.0001,97.62278810726389,265.19123179912566
