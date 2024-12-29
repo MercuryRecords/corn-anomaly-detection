@@ -140,9 +140,7 @@
 #### **损失函数**
 
 - **Focal Loss**：
-  $$
-  \text{FL}(p_t) = -\alpha(1-p_t)^\gamma \log(p_t)
-  $$
+  $\text{FL}(p_t) = -\alpha(1-p_t)^\gamma \log(p_t)$
   
 
   - $p_t$：预测概率。
