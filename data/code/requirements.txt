@@ -1,0 +1,8 @@
+rasterio
+albumentations
+segmentation_models_pytorch
+tqdm
+torch
+numpy
+Pillow
+torchvision
